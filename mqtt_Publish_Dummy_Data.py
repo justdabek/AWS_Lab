@@ -1,10 +1,10 @@
-#------------------------------------------
-#--- Author: Pradeep Singh
-#--- Date: 20th January 2017
-#--- Version: 1.0
-#--- Python Ver: 2.7
-#--- Details At: https://iotbytes.wordpress.com/store-mqtt-data-from-sensors-into-sql-database/
-#------------------------------------------
+# ------------------------------------------
+# --- Author: Pradeep Singh
+# --- Date: 20th January 2017
+# --- Version: 1.0
+# --- Python Ver: 2.7
+# --- Details At: https://iotbytes.wordpress.com/store-mqtt-data-from-sensors-into-sql-database/
+# ------------------------------------------
 
 
 import paho.mqtt.client as mqtt
@@ -13,97 +13,91 @@ from datetime import datetime
 from near_location import *
 import sys
 
-#====================================================
-# MQTT Settings 
-MQTT_Broker = 'broker.emqx.io'
-MQTT_Port = 1883
-Keep_Alive_Interval = 45
-MQTT_Topic = "cloud2020/JustSeba/sensor_data"
-
-
-#====================================================
 
 def on_connect(client, userdata, rc):
-	if rc != 0:
-		pass
-		print("Unable to connect to MQTT Broker...")
-	else:
-		print("Connected with MQTT Broker: " + str(MQTT_Broker))
+    if rc != 0:
+        pass
+        print("Unable to connect to MQTT Broker...")
+    else:
+        print("Connected")
+        pass
+    # print("Connected with MQTT Broker: " + str(MQTT_Broker))
+
 
 def on_publish(client, userdata, mid):
-	pass
-		
+    pass
+
+
 def on_disconnect(client, userdata, rc):
-	if rc !=0:
-		pass
-		
-mqttc = mqtt.Client()
-mqttc.on_connect = on_connect
-mqttc.on_disconnect = on_disconnect
-mqttc.on_publish = on_publish
-mqttc.connect(MQTT_Broker, int(MQTT_Port), int(Keep_Alive_Interval))		
-
-		
-def publish_To_Topic(topic, message):
-	mqttc.publish(topic,message)
-	print ("Published: " + str(message) + " " + "on MQTT Topic: " + str(topic))
+    if rc != 0:
+        pass
 
 
-
-#====================================================
+# ====================================================
 # FAKE SENSOR 
 # Dummy code used as Fake Sensor to publish some random values
 # to MQTT Broker
 
-toggle = 0
+class Sensor:
+    def __init__(self, sensor_id):
+        self.sensor_id = sensor_id
+        self.temperature = None
+        self.humidity = None
+        self.pollution = None
+        self.latitude = None
+        self.date = None
+        self.measure_data()
+        # MQTT Settings
+        self.mqttc = None
+        self.MQTT_Broker = 'broker.emqx.io'
+        self.MQTT_Port = 1883
+        self.Keep_Alive_Interval = 45
+        self.MQTT_Topic = "cloud2020/JustSeba/sensor_" + str(sensor_id)
 
-class SensorData:
-	def __init__(self,id):
-		self.temperature=round(random.uniform(-20,60), 2)
-		self.humidity=random.randint(10,90)
-		self.pollution=abs(random.randint(-25,75))
-		self.id=id
-		self.latitude=near_location(50.09286500280051, 19.92465692590898, 50)
-		self.date=datetime.now()
+    def measure_data(self):
+        self.temperature = round(random.uniform(-20, 60), 2)
+        self.humidity = random.randint(10, 90)
+        self.pollution = abs(random.randint(-25, 75))
+        self.latitude = near_location(50.09286500280051, 19.92465692590898, 50)
+        self.date = datetime.now().strftime("%d-%b-%Y %H:%M:%S:%f")
 
-	def createJSON(self):
-		sensorData = {}
-		sensorData['Sensor_ID'] = self.id
-		sensorData['Date'] = self.date.strftime("%d-%b-%Y %H:%M:%S:%f")
-		sensorData['Humidity'] = self.humidity
-		json_data = json.dumps(sensorData)
+    def createJSON(self):
+        sensor_data = {'Sensor_ID': self.sensor_id, 'Date': self.date, 'Humidity': self.humidity,
+                       'Temperature': self.temperature, 'Pollution': self.pollution, 'Latitude': self.latitude}
+        json_data = json.dumps(sensor_data)
 
-		print(f'Publishing sensor data: {self.id} \n '
-			  f'Temperature: {self.temperature}\n '
-			  f'Humidity: {self.humidity}\n '
-			  f'Latitude: {self.latitude}\n\n')
-		return json_data
+        print(f'Publishing sensor data: {self.sensor_id} \n '
+              f'Temperature: {self.temperature}\n '
+              f'Humidity: {self.humidity}\n '
+              f'Latitude: {self.latitude}\n\n')
+        return json_data
 
+    def publish_Fake_Sensor_Values_to_MQTT(self):
+        threading.Timer(3.0, self.publish_Fake_Sensor_Values_to_MQTT).start()
+        self.measure_data()
+        self.publish_To_Topic(self.MQTT_Topic, self.createJSON())
 
-sensorID = 0
+    def connect_sensor(self):
+        self.mqttc = mqtt.Client()
+        self.mqttc.on_connect = on_connect
+        self.mqttc.on_disconnect = on_disconnect
+        self.mqttc.on_publish = on_publish
+        self.mqttc.connect(self.MQTT_Broker, int(self.MQTT_Port), int(self.Keep_Alive_Interval))
 
-
-def publish_Fake_Sensor_Values_to_MQTT():
-	threading.Timer(3.0, publish_Fake_Sensor_Values_to_MQTT).start()
-	global sensorID
-	sd = SensorData(sensorID)
-	publish_To_Topic(MQTT_Topic, sd.createJSON())
-
+    def publish_To_Topic(self, topic, message):
+        self.mqttc.publish(topic, message)
+        print("Published: " + str(message) + " " + "on MQTT Topic: " + str(topic))
 
 
 def main():
-	if sys.argv[1].isdigit():
-		global sensorID
-		sensorID = sys.argv[1]
+    if sys.argv[1].isdigit():
+        sensorID = sys.argv[1]
+        sensor = Sensor(sensorID)
+        sensor.connect_sensor()
+        sensor.publish_Fake_Sensor_Values_to_MQTT()
+    else:
+        print("Add sensor id")
 
-		publish_Fake_Sensor_Values_to_MQTT()
-	else:
-		print("Add sensor id")
 
 if __name__ == "__main__":
     main()
-
-
-
-
-#====================================================
