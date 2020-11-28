@@ -37,6 +37,7 @@ class Sensor:
         self.pollution = None
         self.latitude = None
         self.date = None
+        self.latitude = near_location(50.09286500280051, 19.92465692590898, 50)
         self.measure_data()
 
         # MQTT Settings
@@ -45,7 +46,7 @@ class Sensor:
         self.AWSClientName = "AWSPython"
         self.AWSPort = 8883
         self.endpoint = "a13fbctsul0zeq-ats.iot.us-east-1.amazonaws.com"
-        self.basePathToCerts = r"C:\Users\Justyna\Desktop\Documents\Studia\IT\Cloud\AWS_Lab\connect_device_package"
+        self.basePathToCerts = r"C:\Users\AMD\Desktop\Python\Studia\Chmury\AWS_Lab\AWSCertificates\just"
         self.rootCAPath = self.basePathToCerts + r"\root-CA.crt"
         self.privateKeyPath = self.basePathToCerts + r"\SensorPolicy.private.key"
         self.certificatePath = self.basePathToCerts + r"\SensorPolicy.cert.pem"
@@ -54,7 +55,6 @@ class Sensor:
         self.temperature = round(random.uniform(-20, 60), 2)
         self.humidity = random.randint(10, 90)
         self.pollution = abs(random.randint(-25, 75))
-        self.latitude = near_location(50.09286500280051, 19.92465692590898, 50)
         self.date = datetime.now().strftime("%d-%b-%Y %H:%M:%S:%f")
 
     def createJSON(self):
@@ -91,8 +91,9 @@ class Sensor:
         self.mqttc.configureDrainingFrequency(2)  # Draining: 2 Hz
         self.mqttc.configureConnectDisconnectTimeout(10)  # 10 sec
         self.mqttc.configureMQTTOperationTimeout(5)  # 5 sec
-        print('Connected')
+
         self.mqttc.connect()
+        print('Connected')
 
         self.mqttc.subscribe(self.MQTT_Topic, 1, customCallback)
 
