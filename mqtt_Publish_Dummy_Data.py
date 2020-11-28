@@ -16,25 +16,6 @@ from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 import time
 
 
-def on_connect(client, userdata, rc):
-    if rc != 0:
-        pass
-        print("Unable to connect to MQTT Broker...")
-    else:
-        print("Connected")
-        pass
-    # print("Connected with MQTT Broker: " + str(MQTT_Broker))
-
-
-def on_publish(client, userdata, mid):
-    pass
-
-
-def on_disconnect(client, userdata, rc):
-    if rc != 0:
-        pass
-
-
 # Custom MQTT message callback
 def customCallback(client, userdata, message):
     print("Received a new message: ")
@@ -57,23 +38,17 @@ class Sensor:
         self.latitude = None
         self.date = None
         self.measure_data()
-        # # MQTT Settings
-        # self.mqttc = None
-        # self.MQTT_Broker = 'broker.emqx.io'
-        # self.MQTT_Port = 1883
-        # self.Keep_Alive_Interval = 45
-        # self.MQTT_Topic = "cloud2020/JustSeba/sensor_" + str(sensor_id)
 
         # MQTT Settings
         self.mqttc = None
         self.MQTT_Topic = "cloud2020/JustSeba/sensor_" + str(sensor_id)
         self.AWSClientName = "AWSPython"
         self.AWSPort = 8883
-        self.endpoint = "arn:aws:iot:us-east-1:445268892728:thing/AWSPython"
-        self.basePathToCerts = r"C:\Users\AMD\Desktop\Python\Studia\Chmury\AWS_Lab\AWSCertificates"
-        self.rootCAPath = self.basePathToCerts + r"\rootca.pem"
-        self.privateKeyPath = self.basePathToCerts + r"\dafe660620-private.pem.key"
-        self.certificatePath = self.basePathToCerts + r"\dafe660620-certificate.pem.crt"
+        self.endpoint = "a13fbctsul0zeq-ats.iot.us-east-1.amazonaws.com"
+        self.basePathToCerts = r"C:\Users\Justyna\Desktop\Documents\Studia\IT\Cloud\AWS_Lab\connect_device_package"
+        self.rootCAPath = self.basePathToCerts + r"\root-CA.crt"
+        self.privateKeyPath = self.basePathToCerts + r"\SensorPolicy.private.key"
+        self.certificatePath = self.basePathToCerts + r"\SensorPolicy.cert.pem"
 
     def measure_data(self):
         self.temperature = round(random.uniform(-20, 60), 2)
@@ -116,7 +91,7 @@ class Sensor:
         self.mqttc.configureDrainingFrequency(2)  # Draining: 2 Hz
         self.mqttc.configureConnectDisconnectTimeout(10)  # 10 sec
         self.mqttc.configureMQTTOperationTimeout(5)  # 5 sec
-
+        print('Connected')
         self.mqttc.connect()
 
         self.mqttc.subscribe(self.MQTT_Topic, 1, customCallback)
@@ -130,7 +105,7 @@ class Sensor:
         # self.mqttc.connect(self.MQTT_Broker, int(self.MQTT_Port), int(self.Keep_Alive_Interval))
 
     def publish_To_Topic(self, topic, message):
-        self.mqttc.publish(topic, message)
+        self.mqttc.publish(topic, message, 1)
         print("Published: " + str(message) + " " + "on MQTT Topic: " + str(topic))
 
 
