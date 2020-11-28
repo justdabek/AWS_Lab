@@ -12,6 +12,8 @@ import random, threading, json
 from datetime import datetime
 from near_location import *
 import sys
+from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
+import time
 
 
 def on_connect(client, userdata, rc):
@@ -33,6 +35,14 @@ def on_disconnect(client, userdata, rc):
         pass
 
 
+# Custom MQTT message callback
+def customCallback(client, userdata, message):
+    print("Received a new message: ")
+    print(message.payload)
+    print("from topic: ")
+    print(message.topic)
+    print("--------------\n\n")
+
 # ====================================================
 # FAKE SENSOR 
 # Dummy code used as Fake Sensor to publish some random values
@@ -47,12 +57,23 @@ class Sensor:
         self.latitude = None
         self.date = None
         self.measure_data()
+        # # MQTT Settings
+        # self.mqttc = None
+        # self.MQTT_Broker = 'broker.emqx.io'
+        # self.MQTT_Port = 1883
+        # self.Keep_Alive_Interval = 45
+        # self.MQTT_Topic = "cloud2020/JustSeba/sensor_" + str(sensor_id)
+
         # MQTT Settings
         self.mqttc = None
-        self.MQTT_Broker = 'broker.emqx.io'
-        self.MQTT_Port = 1883
-        self.Keep_Alive_Interval = 45
         self.MQTT_Topic = "cloud2020/JustSeba/sensor_" + str(sensor_id)
+        self.AWSClientName = "AWSPython"
+        self.AWSPort = 8883
+        self.endpoint = "arn:aws:iot:us-east-1:445268892728:thing/AWSPython"
+        self.basePathToCerts = r"C:\Users\AMD\Desktop\Python\Studia\Chmury\AWS_Lab\AWSCertificates"
+        self.rootCAPath = self.basePathToCerts + r"\rootca.pem"
+        self.privateKeyPath = self.basePathToCerts + r"\dafe660620-private.pem.key"
+        self.certificatePath = self.basePathToCerts + r"\dafe660620-certificate.pem.crt"
 
     def measure_data(self):
         self.temperature = round(random.uniform(-20, 60), 2)
@@ -77,12 +98,36 @@ class Sensor:
         self.measure_data()
         self.publish_To_Topic(self.MQTT_Topic, self.createJSON())
 
+    # def connect_sensor(self):
+    #     self.mqttc = mqtt.Client()
+    #     self.mqttc.on_connect = on_connect
+    #     self.mqttc.on_disconnect = on_disconnect
+    #     self.mqttc.on_publish = on_publish
+    #     self.mqttc.connect(self.MQTT_Broker, int(self.MQTT_Port), int(self.Keep_Alive_Interval))
+
     def connect_sensor(self):
-        self.mqttc = mqtt.Client()
-        self.mqttc.on_connect = on_connect
-        self.mqttc.on_disconnect = on_disconnect
-        self.mqttc.on_publish = on_publish
-        self.mqttc.connect(self.MQTT_Broker, int(self.MQTT_Port), int(self.Keep_Alive_Interval))
+        self.mqttc = AWSIoTMQTTClient(self.AWSClientName)
+        self.mqttc.configureEndpoint(self.endpoint, self.AWSPort)
+        self.mqttc.configureCredentials(self.rootCAPath, self.privateKeyPath, self.certificatePath)
+
+        # AWSIoTMQTTClient connection configuration
+        self.mqttc.configureAutoReconnectBackoffTime(1, 32, 20)
+        self.mqttc.configureOfflinePublishQueueing(-1)  # Infinite offline Publish queueing
+        self.mqttc.configureDrainingFrequency(2)  # Draining: 2 Hz
+        self.mqttc.configureConnectDisconnectTimeout(10)  # 10 sec
+        self.mqttc.configureMQTTOperationTimeout(5)  # 5 sec
+
+        self.mqttc.connect()
+
+        self.mqttc.subscribe(self.MQTT_Topic, 1, customCallback)
+
+        time.sleep(2)
+
+        # self.mqttc = mqtt.Client()
+        # self.mqttc.on_connect = on_connect
+        # self.mqttc.on_disconnect = on_disconnect
+        # self.mqttc.on_publish = on_publish
+        # self.mqttc.connect(self.MQTT_Broker, int(self.MQTT_Port), int(self.Keep_Alive_Interval))
 
     def publish_To_Topic(self, topic, message):
         self.mqttc.publish(topic, message)
