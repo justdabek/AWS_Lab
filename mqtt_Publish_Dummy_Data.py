@@ -43,7 +43,7 @@ class Sensor:
         # MQTT Settings
         self.mqttc = None
         self.MQTT_Topic = "cloud2020/JustSeba/sensor_" + str(sensor_id)
-        self.AWSClientName = "AWSPython"
+        self.AWSClientName = "Sensor"
         self.AWSPort = 8883
         self.endpoint = "a13fbctsul0zeq-ats.iot.us-east-1.amazonaws.com"
         self.basePathToCerts = r"C:\Users\AMD\Desktop\Python\Studia\Chmury\AWS_Lab\AWSCertificates\just"
